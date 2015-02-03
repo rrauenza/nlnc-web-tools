@@ -1,0 +1,44 @@
+#!/usr/bin/perl
+
+$path = "/var/www/html/recordings/English";
+
+$today = `date +%Y%m%d`;
+$month = `date +%m`;
+$day = `date +%d`;
+$year = `date +%Y`;
+
+$URL = "http://www.wall.org/~gloria/lect/cur/wide/html/weeks/thisweek.html";
+
+chomp $today;
+chomp $year;
+chomp $month;
+chomp $day;
+
+$file = $path . "/" . $today . ".xml";
+
+open(WEBPAGE, "wget --quiet -O - $URL|");
+while (<WEBPAGE>) {
+	$found = 1 if /Sunday/;
+	if ($found) {
+		if (/\"red\">(.*)<\/font><br>/) {
+			$lect = $1;
+			$found = 0;
+		}
+	}
+}
+
+open INFILE, "<$path/template" or die "$path/template: $!\n";
+open OUTFILE, ">$file" or die "$file: $!\n";
+
+while (<INFILE>) {
+	s/YYYY/$year/;
+	s/MM/$month/;
+	s/DD/$day/;
+	s/<lect>/<lect>$lect/;
+
+	print OUTFILE $_;
+}
+
+close INFILE;
+close OUTFILE;
+system "vi $file";

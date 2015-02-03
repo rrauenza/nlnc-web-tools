@@ -1,0 +1,35 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+my $DEBUG = 0;
+
+chop(my $subdir = `pwd`);
+$subdir =~ s#/home/www/\w+/## or die "Doesn't work in this directory";
+
+my @files = `find . -name '*.mp3' -print`;
+
+for my $mp3 (@files) {
+    chop($mp3);
+    print $mp3,"\n" if $DEBUG;
+    if (not $mp3 =~ m#_mp3_/#) {
+	my $newmp3 = $mp3;
+	$newmp3 =~ s#(.*)/(.*)#$1/_mp3_/$2#;
+	my $newdir = "$1/_mp3_";
+	mkdir $newdir unless -d $newdir;
+	print "Moving $mp3 to $newmp3\n";
+	rename $mp3, $newmp3 or die "Can't mv $mp3 to _mp3_: $!";
+	$mp3 = $newmp3;
+    }
+    $mp3 =~ s#^\./##;
+    $mp3 =~ m#(.*)_mp3_/(.*)\.mp3$# or die "Malformed?";
+    my $m3u = "$1$2.m3u";
+    my $url = "http://www2.nlnc.org/$subdir/${1}_mp3_/$2.mp3";
+    next if -s $m3u;
+    print "Creating $m3u\n";
+    open M3U, ">$m3u" or die "Can't create $m3u: $!";
+    print M3U $url,"\n";
+    close M3U;
+    chmod 0664, $m3u, $mp3;
+}
