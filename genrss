@@ -22,6 +22,7 @@ import re
 from feedgen.feed import FeedGenerator
 
 
+# Image must be >= 1400 x 1400 and <= 2048 x 2048
 _PODCAST_IMAGE = 'https://farm9.staticflickr.com/8661/16173269868_90fb1046b1_h_d.jpg'
 _PODCAST_AUTHOR = 'Cupertino New Life Nazarene Church'
 
