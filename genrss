@@ -21,7 +21,9 @@ import re
 
 from feedgen.feed import FeedGenerator
 
-_DEFAULT_EMAIL = 'nospam@nlnc.org'
+
+_PODCAST_IMAGE = 'https://farm9.staticflickr.com/8661/16173269868_90fb1046b1_h_d.jpg'
+_PODCAST_AUTHOR = 'Cupertino New Life Nazarene Church'
 
 
 class BadXML(Exception):
@@ -45,7 +47,8 @@ def _main(argv):
     fg.pubDate(now)
     fg.updated(now)
     fg.podcast.itunes_explicit('clean')
-    fg.podcast.itunes_author('nlnc.org')
+    fg.podcast.itunes_image(_PODCAST_IMAGE)
+    fg.podcast.itunes_author(_PODCAST_AUTHOR)
     fg.language(options.language)
     fg.ttl(60)
 
