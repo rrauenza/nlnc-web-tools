@@ -8,6 +8,7 @@ all:
 	    --title "New Life Nazarene Church Cupertino - English Worship" \
 	    --description "Various recordings of sermons from English worship" \
 	    --link "http://www2.nlnc.org/recordings/English/" \
+	    --language en \
 	    -o rss.new \
 	    .
 	mv -f rss.new rss

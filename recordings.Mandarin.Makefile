@@ -8,6 +8,7 @@ all:
 	    --title "New Life Nazarene Church Cupertino - Mandarin Worship" \
 	    --description "Various recordings of sermons from Mandarin worship" \
 	    --link "http://www2.nlnc.org/recordings/Mandarin/" \
+	    --language zh \
 	    -o rss.new \
 	    .
 	mv -f rss.new rss

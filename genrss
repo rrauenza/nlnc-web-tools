@@ -46,6 +46,7 @@ def _main(argv):
     fg.updated(now)
     fg.podcast.itunes_explicit('clean')
     fg.podcast.itunes_author('nlnc.org')
+    fg.language(options.language)
     fg.ttl(60)
 
     for d in dirs:
@@ -152,6 +153,7 @@ def _parse_args(argv):
     parser.add_option('-d', '--description', help="Description of RSS feed")
     parser.add_option('-l', '--link', help="Link to content page")
     parser.add_option('-o', '--output', help="Output", default='-')
+    parser.add_option('-g', '--language', help="Output", choices=['en', 'zh'])
     options, dirs = parser.parse_args(args=argv)
     if options.title is None:
         parser.error("--title is required.")

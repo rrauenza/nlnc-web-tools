@@ -8,6 +8,7 @@ all:
 	    --title "New Life Nazarene Church Cupertino - Cantonese Worship" \
 	    --description "Various recordings of sermons from Cantonese worship" \
 	    --link "http://www2.nlnc.org/recordings/Cantonese/" \
+	    --language zh \
 	    -o rss.new \
 	    .
 	mv -f rss.new rss
