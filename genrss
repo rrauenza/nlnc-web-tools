@@ -1,4 +1,4 @@
-#!/usr/bin/perl -eexec {'/usr/bin/python'} ('/usr/bin/perl', @ARGV)
+#!/usr/bin/perl -eexec {'/usr/bin/python'} ('/usr/bin/perl', '-B', @ARGV)
 # See, it's technically still a perl script, right?
 # See! Even vim thinks so!
 # vim: filetype=python
