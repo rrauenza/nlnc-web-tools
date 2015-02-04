@@ -61,7 +61,7 @@ def _process_dir(d):
 
 def _get_rss_item(m3u):
     data = _process_m3u(m3u)
-    desc = ""
+    desc = ", ".join((data.get('text', ""), data.get('lect', "")))
     link = data['link']
     guid = RSS2.Guid(link)
     return RSS2.RSSItem(title=data['title'],
