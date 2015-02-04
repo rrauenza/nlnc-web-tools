@@ -46,7 +46,7 @@ def _main(argv):
     fg.updated(now)
     fg.podcast.itunes_explicit('clean')
     fg.podcast.itunes_author('nlnc.org')
-    fg.ttl(1)
+    fg.ttl(60)
 
     for d in dirs:
         _process_dir(d, fg)
