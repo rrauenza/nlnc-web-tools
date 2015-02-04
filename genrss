@@ -3,13 +3,14 @@
 # See! Even vim thinks so!
 # vim: filetype=python
 
+import PyRSS2Gen
+import datetime
 import dateutil.parser
 import glob
 import libxml2
 import logging
 import optparse
 import os
-import PyRSS2Gen
 import re
 import sys
 
@@ -22,35 +23,63 @@ class BadXML(Exception):
 
 def _main(argv):
     options, dirs = _parse_args(argv)
-    setup_logging(options.verbose)
+    _setup_logging(options.verbose)
     if len(dirs) == 0:
         logging.critical("You must specify at least one DIR.")
         return 1
+
+    items = []
     for d in dirs:
-        process_dir(d)
+        items.extend(_process_dir(d))
+
+    rss = PyRSS2Gen.RSS2(title=options.title,
+                         link=options.link,
+                         description=options.description,
+                         lastBuildDate=datetime.datetime.now(),
+                         items=items)
+    if options.output == '-':
+        fd = sys.stdout
+    else:
+        fd = open(options.output, 'w')
+    rss.write_xml(fd)
 
 
-def process_dir(d):
+def _process_dir(d):
     g = os.path.join(d, "*.m3u")
     logging.debug("Looking in %s", g)
     items = []
     for m3u in sorted(glob.glob(g), reverse=True):
         logging.debug("    %s", m3u)
         try:
-            items.append(process_m3u(m3u))
+            items.append(_get_rss_item(m3u))
         except Exception as exc:
             logging.error("Could not add %s: %s", m3u, exc)
+    return items
 
 
-def process_m3u(m3u):
+def _get_rss_item(m3u):
+    data = _process_m3u(m3u)
+    desc = ""
+    link = data['link']
+    guid = PyRSS2Gen.Guid(link)
+    return PyRSS2Gen.RSSItem(title=data['title'],
+                             link=link,
+                             description=desc,
+                             guid=guid,
+                             pubDate=data['date'],)
+
+
+def _process_m3u(m3u):
     assert(m3u.endswith('.m3u'))
     xml = re.sub(r'.m3u$', '.xml', m3u)
     logging.debug("    %s", xml)
-    xmldata = process_xml(xml)
-    print xmldata
+    data = _process_xml(xml)
+    with open(m3u) as fd:
+        data['link'] = fd.readline().rstrip()
+    return data
 
 
-def process_xml(xml):
+def _process_xml(xml):
     ret = {}
     doc = libxml2.parseFile(xml)
     # more /home/www/html/recordings/English/20140427.xml
@@ -64,11 +93,11 @@ def process_xml(xml):
     # <notes></notes>
     # <slides></slides>
     # </recording>
-    recording = get_el(doc, "recording", xml)
+    recording = _get_el(doc, "recording", xml)
     if recording is None:
         raise BadXML("<recording> not found.")
     for n in ("title", "link", "date", "speaker", "text", "lect", "notes", "slides"):
-        node = get_el(recording, n, xml)
+        node = _get_el(recording, n, xml)
         if node is not None:
             ret[n] = node.content
     date = ret.get("date", None)
@@ -82,7 +111,7 @@ def process_xml(xml):
     return ret
 
 
-def get_el(r, el, xml):
+def _get_el(r, el, xml):
     res = r.xpathEval("%s" % el)
     if len(res) == 0:
         return None
@@ -94,11 +123,19 @@ def get_el(r, el, xml):
 def _parse_args(argv):
     parser = optparse.OptionParser()
     parser.add_option('-v', '--verbose', help="Turn on verbose.", action="store_true", default=False)
+    parser.add_option('-t', '--title', help="Title of RSS feed")
+    parser.add_option('-d', '--description', help="Description of RSS feed")
+    parser.add_option('-l', '--link', help="Link to content page")
+    parser.add_option('-o', '--output', help="Output", default='-')
     options, dirs = parser.parse_args(args=argv)
+    if options.title is None:
+        parser.error("--title is required.")
+    if options.description is None:
+        parser.error("--description is required.")
     return options, dirs
 
 
-def setup_logging(verbose):
+def _setup_logging(verbose):
     lvl = logging.DEBUG if verbose else logging.INFO
     fmt = _SCRIPT_NAME + ': %(levelname)s%(message)s'
     logging.basicConfig(level=lvl, format=fmt)
