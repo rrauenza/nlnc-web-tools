@@ -1,0 +1,117 @@
+#!/usr/bin/perl -eexec {'/usr/bin/python'} ('/usr/bin/perl', @ARGV)
+# See, it's technically still a perl script, right?
+# See! Even vim thinks so!
+# vim: filetype=python
+
+import dateutil.parser
+import glob
+import libxml2
+import logging
+import optparse
+import os
+import PyRSS2Gen
+import re
+import sys
+
+_SCRIPT_NAME = os.path.splitext(os.path.basename(__file__))[0]
+
+
+class BadXML(Exception):
+    pass
+
+
+def _main(argv):
+    options, dirs = _parse_args(argv)
+    setup_logging(options.verbose)
+    if len(dirs) == 0:
+        logging.critical("You must specify at least one DIR.")
+        return 1
+    for d in dirs:
+        process_dir(d)
+
+
+def process_dir(d):
+    g = os.path.join(d, "*.m3u")
+    logging.debug("Looking in %s", g)
+    items = []
+    for m3u in sorted(glob.glob(g), reverse=True):
+        logging.debug("    %s", m3u)
+        try:
+            items.append(process_m3u(m3u))
+        except Exception as exc:
+            logging.error("Could not add %s: %s", m3u, exc)
+
+
+def process_m3u(m3u):
+    assert(m3u.endswith('.m3u'))
+    xml = re.sub(r'.m3u$', '.xml', m3u)
+    logging.debug("    %s", xml)
+    xmldata = process_xml(xml)
+    print xmldata
+
+
+def process_xml(xml):
+    ret = {}
+    doc = libxml2.parseFile(xml)
+    # more /home/www/html/recordings/English/20140427.xml
+    # <recording>
+    # <link>20140427.m3u</link>
+    # <date>2014/04/27</date>
+    # <speaker>Jeff Purganan</speaker>
+    # <title>Speak Peace to Someone</title>
+    # <text></text>
+    # <lect></lect>
+    # <notes></notes>
+    # <slides></slides>
+    # </recording>
+    recording = get_el(doc, "recording", xml)
+    if recording is None:
+        raise BadXML("<recording> not found.")
+    for n in ("title", "link", "date", "speaker", "text", "lect", "notes", "slides"):
+        node = get_el(recording, n, xml)
+        if node is not None:
+            ret[n] = node.content
+    date = ret.get("date", None)
+    if date is None:
+        raise BadXML("<date> missing in %s" % xml)
+    try:
+        date = dateutil.parser.parse(date)
+        ret['date'] = date
+    except Exception as exc:
+        raise BadXML("bad <date> format in %s: %s" % (exc, xml))
+    return ret
+
+
+def get_el(r, el, xml):
+    res = r.xpathEval("%s" % el)
+    if len(res) == 0:
+        return None
+    if len(res) > 1:
+        raise BadXML("Too many <%s> elements not found in %s." % (el, xml))
+    return res[0]
+
+
+def _parse_args(argv):
+    parser = optparse.OptionParser()
+    parser.add_option('-v', '--verbose', help="Turn on verbose.", action="store_true", default=False)
+    options, dirs = parser.parse_args(args=argv)
+    return options, dirs
+
+
+def setup_logging(verbose):
+    lvl = logging.DEBUG if verbose else logging.INFO
+    fmt = _SCRIPT_NAME + ': %(levelname)s%(message)s'
+    logging.basicConfig(level=lvl, format=fmt)
+    logging.addLevelName(logging.DEBUG, 'debug: ')
+    logging.addLevelName(logging.INFO, '')
+    logging.addLevelName(logging.WARNING, 'warning: ')
+    logging.addLevelName(logging.ERROR, 'error: ')
+    logging.addLevelName(logging.CRITICAL, 'critical: ')
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(_main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        print >> sys.stderr, '%s: interrupted' % _SCRIPT_NAME
+        sys.exit(130)
