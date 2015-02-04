@@ -3,20 +3,22 @@
 # See! Even vim thinks so!
 # vim: filetype=python
 
+import os
+_DIR_NAME = os.path.dirname(os.path.abspath(__file__))
+_SCRIPT_NAME = os.path.splitext(os.path.basename(__file__))[0]
+
+import sys
+sys.path = [os.path.join(_DIR_NAME, "pylib")] + sys.path
+
 import datetime
 import dateutil.parser
 import glob
 import libxml2
 import logging
 import optparse
-import os
 import re
-import sys
 
-from rss import PyRSS2Gen as RSS2
-
-
-_SCRIPT_NAME = os.path.splitext(os.path.basename(__file__))[0]
+from feedgen.feed import FeedGenerator
 
 
 class BadXML(Exception):
@@ -30,45 +32,46 @@ def _main(argv):
         logging.critical("You must specify at least one DIR.")
         return 1
 
-    items = []
-    for d in dirs:
-        items.extend(_process_dir(d))
+    fg = FeedGenerator()
+    fg.load_extension('podcast')
+    fg.podcast.itunes_category('Religion & Spirituality', 'Christianity')
+    fg.title(options.title)
+    fg.description(options.description)
+    fg.link(href=options.link)
 
-    rss = RSS2.RSS2(title=options.title,
-                    link=options.link,
-                    description=options.description,
-                    lastBuildDate=datetime.datetime.now(),
-                    items=items)
+    for d in dirs:
+        _process_dir(d, fg)
+
     if options.output == '-':
         fd = sys.stdout
     else:
         fd = open(options.output, 'w')
-    rss.write_xml(fd)
+
+    fd.write(fg.rss_str(pretty=True, encoding='UTF-8'))
 
 
-def _process_dir(d):
+def _process_dir(d, fg):
     g = os.path.join(d, "*.m3u")
     logging.debug("Looking in %s", g)
     items = []
     for m3u in sorted(glob.glob(g), reverse=True):
         logging.debug("    %s", m3u)
         try:
-            items.append(_get_rss_item(m3u))
+            _add_rss_item(m3u, fg)
         except Exception as exc:
             logging.error("Could not add %s: %s", m3u, exc)
     return items
 
 
-def _get_rss_item(m3u):
+def _add_rss_item(m3u, fg):
     data = _process_m3u(m3u)
     desc = ", ".join((data.get('text', ""), data.get('lect', "")))
     link = data['link']
-    guid = RSS2.Guid(link)
-    return RSS2.RSSItem(title=data['title'],
-                        link=link,
-                        description=desc,
-                        guid=guid,
-                        pubDate=data['date'],)
+    fe = fg.add_entry()
+    fe.description(desc)
+    fe.title(data['title'])
+    fe.enclosure(link, 0, 'audio/mpeg')
+    fe.id(link)
 
 
 def _process_m3u(m3u):

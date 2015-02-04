@@ -1,0 +1,16 @@
+feedgen/__init__.py
+feedgen/__main__.py
+feedgen/entry.py
+feedgen/feed.py
+feedgen/util.py
+feedgen/version.py
+feedgen.egg-info/PKG-INFO
+feedgen.egg-info/SOURCES.txt
+feedgen.egg-info/dependency_links.txt
+feedgen.egg-info/requires.txt
+feedgen.egg-info/top_level.txt
+feedgen/ext/__init__.py
+feedgen/ext/base.py
+feedgen/ext/dc.py
+feedgen/ext/podcast.py
+feedgen/ext/podcast_entry.py
