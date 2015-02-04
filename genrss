@@ -16,9 +16,12 @@ import glob
 import libxml2
 import logging
 import optparse
+import pytz
 import re
 
 from feedgen.feed import FeedGenerator
+
+_DEFAULT_EMAIL = 'nospam@nlnc.org'
 
 
 class BadXML(Exception):
@@ -32,12 +35,18 @@ def _main(argv):
         logging.critical("You must specify at least one DIR.")
         return 1
 
+    now = pytz.utc.localize(datetime.datetime.utcnow())
     fg = FeedGenerator()
     fg.load_extension('podcast')
     fg.podcast.itunes_category('Religion & Spirituality', 'Christianity')
     fg.title(options.title)
     fg.description(options.description)
     fg.link(href=options.link)
+    fg.pubDate(now)
+    fg.updated(now)
+    fg.podcast.itunes_explicit('clean')
+    fg.podcast.itunes_author('nlnc.org')
+    fg.ttl(1)
 
     for d in dirs:
         _process_dir(d, fg)
@@ -65,13 +74,23 @@ def _process_dir(d, fg):
 
 def _add_rss_item(m3u, fg):
     data = _process_m3u(m3u)
-    desc = ", ".join((data.get('text', ""), data.get('lect', "")))
+    text = data.get('text', "")
+    lect = data.get('lect', "")
+    desc = []
+    if text:
+        desc.append("Text: %s" % text)
+    if lect:
+        desc.append("Lectionary: %s" % lect)
+    desc = ", ".join(desc)
     link = data['link']
     fe = fg.add_entry()
     fe.description(desc)
     fe.title(data['title'])
+    fe.podcast.itunes_explicit('clean')
     fe.enclosure(link, 0, 'audio/mpeg')
+    fe.pubdate(data['date'])
     fe.id(link)
+    fe.podcast.itunes_author(data['speaker'])
 
 
 def _process_m3u(m3u):
@@ -110,6 +129,7 @@ def _process_xml(xml):
         raise BadXML("<date> missing in %s" % xml)
     try:
         date = dateutil.parser.parse(date)
+        date = pytz.timezone('America/Los_Angeles').localize(date)
         ret['date'] = date
     except Exception as exc:
         raise BadXML("bad <date> format in %s: %s" % (exc, xml))
