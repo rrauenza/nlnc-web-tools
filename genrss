@@ -3,7 +3,6 @@
 # See! Even vim thinks so!
 # vim: filetype=python
 
-import PyRSS2Gen
 import datetime
 import dateutil.parser
 import glob
@@ -13,6 +12,9 @@ import optparse
 import os
 import re
 import sys
+
+from rss import PyRSS2Gen as RSS2
+
 
 _SCRIPT_NAME = os.path.splitext(os.path.basename(__file__))[0]
 
@@ -32,11 +34,11 @@ def _main(argv):
     for d in dirs:
         items.extend(_process_dir(d))
 
-    rss = PyRSS2Gen.RSS2(title=options.title,
-                         link=options.link,
-                         description=options.description,
-                         lastBuildDate=datetime.datetime.now(),
-                         items=items)
+    rss = RSS2.RSS2(title=options.title,
+                    link=options.link,
+                    description=options.description,
+                    lastBuildDate=datetime.datetime.now(),
+                    items=items)
     if options.output == '-':
         fd = sys.stdout
     else:
@@ -61,12 +63,12 @@ def _get_rss_item(m3u):
     data = _process_m3u(m3u)
     desc = ""
     link = data['link']
-    guid = PyRSS2Gen.Guid(link)
-    return PyRSS2Gen.RSSItem(title=data['title'],
-                             link=link,
-                             description=desc,
-                             guid=guid,
-                             pubDate=data['date'],)
+    guid = RSS2.Guid(link)
+    return RSS2.RSSItem(title=data['title'],
+                        link=link,
+                        description=desc,
+                        guid=guid,
+                        pubDate=data['date'],)
 
 
 def _process_m3u(m3u):
